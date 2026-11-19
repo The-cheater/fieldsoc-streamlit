@@ -224,7 +224,15 @@ def load_models():
 @st.cache_data
 def load_index():
     path = BASE_DIR / "production_multimodal_master_index.csv"
-    return pd.read_csv(path) if path.exists() else pd.DataFrame()
+    frame = pd.read_csv(path) if path.exists() else pd.DataFrame()
+    manifest = BASE_DIR / "available_tensors.json"
+    if not frame.empty and manifest.exists():
+        import json
+        available = json.loads(manifest.read_text(encoding="utf-8"))
+        available_ids = set(int(value) for value in available.get("point_ids", []))
+        if available_ids:
+            frame = frame[frame["point_id"].astype(int).isin(available_ids)].copy()
+    return frame
 
 
 @st.cache_resource
@@ -251,9 +259,7 @@ def download_lucas_tile(point_id):
         )
         return Path(local_path)
     except Exception as exc:
-        raise RuntimeError(
-            f"Hugging Face could not provide {relative_path} from {repo_id}: {exc}"
-        )
+        return None
 
 
 @st.cache_data
