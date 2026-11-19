@@ -234,6 +234,8 @@ def download_lucas_tile(point_id):
     except Exception:
         repo_id = ""
     if not repo_id:
+        repo_id = "dexter-io/lucas-soc-tensors"
+    if not repo_id:
         return None
     try:
         token = st.secrets.get("HF_TOKEN", None)
