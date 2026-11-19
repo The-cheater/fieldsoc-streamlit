@@ -9,3 +9,4 @@ numpy>=1.26
 Pillow>=10
 scikit-learn>=1.5
 joblib>=1.4
+huggingface_hub>=0.25

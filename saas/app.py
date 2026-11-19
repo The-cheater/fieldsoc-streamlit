@@ -11,6 +11,7 @@ from plotly.subplots import make_subplots
 import rasterio
 import streamlit as st
 import torch
+from huggingface_hub import hf_hub_download
 from PIL import Image
 from streamlit_folium import st_folium
 from rasterio.transform import from_origin
@@ -224,6 +225,33 @@ def load_models():
 def load_index():
     path = BASE_DIR / "production_multimodal_master_index.csv"
     return pd.read_csv(path) if path.exists() else pd.DataFrame()
+
+
+@st.cache_resource
+def download_lucas_tile(point_id):
+    try:
+        repo_id = st.secrets.get("HF_DATASET_REPO", "")
+    except Exception:
+        repo_id = ""
+    if not repo_id:
+        return None
+    try:
+        token = st.secrets.get("HF_TOKEN", None)
+    except Exception:
+        token = None
+    relative_path = f"tensor_cache/point_{int(point_id)}.pt"
+    try:
+        local_path = hf_hub_download(
+            repo_id=repo_id,
+            repo_type="dataset",
+            filename=relative_path,
+            token=token,
+        )
+        return Path(local_path)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Hugging Face could not provide {relative_path} from {repo_id}: {exc}"
+        )
 
 
 @st.cache_data
@@ -617,6 +645,9 @@ if run:
             point_id = int(selected_row["point_id"])
             cache_path = BASE_DIR / "tensor_cache" / f"point_{point_id}.pt"
             if not cache_path.exists():
+                hf_path = download_lucas_tile(point_id)
+                cache_path = hf_path if hf_path is not None else cache_path
+            if not cache_path.exists():
                 st.error(f"Cached tile is missing: {cache_path}")
                 st.stop()
             cached = torch.load(cache_path, map_location="cpu", weights_only=False)
@@ -641,6 +672,9 @@ if run:
             selected_row = index.loc[distances.idxmin()]
             point_id = int(selected_row["point_id"])
             cache_path = BASE_DIR / "tensor_cache" / f"point_{point_id}.pt"
+            if not cache_path.exists():
+                hf_path = download_lucas_tile(point_id)
+                cache_path = hf_path if hf_path is not None else cache_path
             if not cache_path.exists():
                 st.error("No cached tensor exists for the nearest LUCAS location.")
                 st.stop()
