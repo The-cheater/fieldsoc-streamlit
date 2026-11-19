@@ -1,0 +1,11 @@
+streamlit>=1.38
+streamlit-folium>=0.20
+folium>=0.17
+plotly>=5.24
+rasterio>=1.3
+torch>=2.2
+pandas>=2.2
+numpy>=1.26
+Pillow>=10
+scikit-learn>=1.5
+joblib>=1.4
